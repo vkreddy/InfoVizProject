@@ -1,22 +1,54 @@
-function getMovies(query) {
-	var apikey = "myapikey";
-	var baseUrl = "http://api.rottentomatoes.com/api/public/v1.0";
-	var moviesSearchUrl = baseUrl + '/movies.json?apikey=' + apikey;
-
-	 // send off the query
+function getDataFromRT(url) {
+	var fullURL = "http://api.rottentomatoes.com/api/public/v1.0" + url + "&apikey=bq2gvg6a4zv8ac366yq676uu";
 	$.ajax({
-		url: moviesSearchUrl + '&q=' + encodeURI(query),
+		url: fullURL,
 		dataType: "jsonp",
-		success: function(){
-			// Sample code from rotten tomatos website - change to d3
-			$(document.body).append('Found ' + data.total + ' results for ' + query);
-			var movies = data.movies;
-			$.each(movies, function(index, movie) {
-				$(document.body).append('<h1>' + movie.title + '</h1>');
-				$(document.body).append('<img src="' + movie.posters.thumbnail + '" />');
-			});
+		success: function(data){
+			return data;
 		}
 	});
+	return false;
+}
+
+function getMoviesInTheaters() {
+	var moviesSearchUrl = '/lists/movies/in_theaters.json?page_limit=16&page=1&country=us';
+	
+	var data = getDataFromRT(movieSearchUrl);
+	// send off the query
+	if (data) {
+		$(document.body).append('Found ' + data.total + ' results for ' + query);
+		var movies = data.movies;
+		$.each(movies, function(index, movie) {
+			$(document.body).append('<h1>' + movie.title + '</h1>');
+			$(document.body).append('<img src="' + movie.posters.thumbnail + '" />');
+		});
+	}
+}
+
+function getSearchMovies(query) {
+	var moviesSearchUrl = '/movies.json?page_limit=16&page=1&q=' + encodeURI(query);	
+	var data = getDataFromRT(movieSearchUrl);
+	// send off the query
+	if (data) {
+		$(document.body).append('Found ' + data.total + ' results for ' + query);
+		var movies = data.movies;
+		$.each(movies, function(index, movie) {
+			$(document.body).append('<h1>' + movie.title + '</h1>');
+			$(document.body).append('<img src="' + movie.posters.thumbnail + '" />');
+		});
+	}
+}
+
+function getDataFromTMS(date,zipcode) {	
+	var fullURL = "http://data.tmsapi.com/v1/movies/showings?startDate=" + date + "&zip=" + zipcode + "&api_key=vrcaw8k9yzfkpcdkvdua6ufz";
+	$.ajax({
+		url: fullURL,
+		dataType: "jsonp",
+		success: function(data){
+			return data;
+		}
+	});
+	return false;
 }
 
 $(document).ready(function () {
@@ -55,7 +87,7 @@ $(document).ready(function () {
 		.style("text-anchor", "middle")
 		.text(function(d) { return d.className.substring(0, d.r / 3); });
 	});
-
+	
 	// Returns a flattened hierarchy containing all leaf nodes under the root.
 	function classes(root) {
 	  var classes = [];
@@ -70,6 +102,6 @@ $(document).ready(function () {
 	}
 
 	d3.select(self.frameElement).style("height", diameter + "px");
-	
+
 	// Sample Code - End
 });
