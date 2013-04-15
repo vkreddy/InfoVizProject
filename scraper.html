@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>scraping text</title>
+
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script type="text/javascript">
+    
+      $("document").ready(function() {
+
+        // This is using the IMDB code for g.i. joe. We'll need to pass in this variable later.
+        var imdbid = "tt1583421";
+        //load webpage from php. Change this URL to whereever it's hosted.
+        $.get("http://taeil2.com/test/scraper.php?imdbid=" + imdbid + " #tn15content", function(data) {
+          //get relevant subset from whole string
+          var subset = data.match(/Budget(.|\n)*?Filming/);
+          var subsetnon = subset[0].replace(/(\r\n|\n|\r)/gm,"");
+          //pull opening weekend data
+          var openingM = subsetnon.match(/Opening Weekend.*?USA/);
+          var opening1 = openingM[0].replace("Opening Weekend</h5>$","");
+          var opening2 = opening1.replace(" (USA","");
+          var opening = opening2.replace(/\,/g,"");
+          //pull gross data
+          var grossM = subsetnon.match(/Gross.*?USA/);
+          var gross1 = grossM[0].replace("Gross</h5>$","");
+          var gross2 = gross1.replace(" (USA","");
+          var gross = gross2.replace(/\,/g,"");
+          //pull last weekend
+          var lastweekendM = subsetnon.match(/Weekend Gross.*?USA/);
+          var lastweekend1 = lastweekendM[0].replace("Weekend Gross</h5>$","");
+          var lastweekend2 = lastweekend1.replace(" (USA","");
+          var lastweekend = lastweekend2.replace(/\,/g,"");
+          //console.log the important data. these are strings at the moment.
+          console.log(opening);
+          console.log(gross);
+          console.log(lastweekend);
+        });
+     });
+    
+    </script>
+</head>
+
+<body>
+
+    <!-- content element is where scraped student data is initially loaded, its hidden in the css -->
+    <div id="content"></div>
+    <!-- result element is where scraped student data is later rendered after we format it in js, this can be deleted later -->
+    <div id="result"></div>
+    <!-- script that gets studend data -->
+</body>
+</html>
