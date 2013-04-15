@@ -7,18 +7,34 @@
 		<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
 		<link href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="stylesheet">
 		<link rel="stylesheet" href="css/style.css">
-		<!-- IE6-8 support of HTML5 elements --> <!--[if lt IE 9]>
-		<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
+		
 		<script src="http://d3js.org/d3.v3.min.js"></script>
 		<script src="http://code.jquery.com/jquery.js"></script>		
 		<script src="js/bootstrap.min.js"></script>
 		<script src="js/script.js"></script>
 	</head>
-	<body>				
-		<div id="wrapper">
+	<body>	
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="navbar-inner">
+				<div class="container">
+					<div class="nav">						
+						<ul class="nav pull-right">
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+									<p>Arrange By</p>
+								</a>
+								<ul class="dropdown-menu">
+									<li><a href="/byrating/" class="navbar-header"><i class="icon icon-globe"></i> By Rating</a></li>
+									<li><a href="/generes/"><i class="icon icon-envelope"></i> By Generes</a></li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
 		<header>
-			<hgroup>
+			<hgroup>	
 				<h1>Movie Explorer</h1>
 				<h3>A quick guide to your favorite movies</h3>
 			</hgroup>			
