@@ -57,7 +57,7 @@ function getDateAndRatings(data) {
 
 $(document).ready(function () {
 	var data = getMoviesInTheaters()
-	var yScale, xScale, yVar;
+	var yScale, xScale, yVar, movie_body;
 	//alert(data.total);
 	
 	w = 860;
@@ -78,10 +78,10 @@ $(document).ready(function () {
     var date_format = d3.time.format("%d %b");
 	
 	// create an svg container
-	var vis = d3.select(".hero-unit")
+	/*var vis = d3.select(".hero-unit")
 		.append("svg:svg")
 		.attr("width", width)
-		.attr("height", height);
+		.attr("height", height);*/
 
 	xScale = d3.time.scale()
 		.domain(x_domain)    
@@ -93,68 +93,62 @@ $(document).ready(function () {
 		.scale(xScale)
 		.tickFormat(date_format);
 		
-	// draw x axis with labels and move to the bottom of the chart area
-	vis.append("g")
-		.attr("class", "xaxis")   
-		.attr("transform", "translate(0," + (height - padding) + ")")
-		.call(xAxis);
-	
-	update_yaxis = function() {
-		var y_domain = d3.extent(data.movies, function(d) { return d.ratings.critics_score; });
+	var y_domain = d3.extent(data.movies, function(d) { return d.ratings.critics_score; });
 		
-		// define the y scale  (vertical)
-		yScale = d3.scale.linear()
+	// define the y scale  (vertical)
+	yScale = d3.scale.linear()
 			.domain(y_domain)    
-			.range([height - padding, padding]); 
+			.range([height - padding, padding]);
 			
-		// define the y axis
-		var yAxis = d3.svg.axis()
+	var yAxis = d3.svg.axis()
 			.orient("left")
 			.scale(yScale)
 			.ticks(10).orient("left");
-			
-		// draw y axis with labels and move in from the size by the amount of padding
-		vis.append("g")
-			.attr("class", "yaxis")
-			.attr("transform", "translate("+padding+",0)")
-			.call(yAxis);
-	}
+	// draw x axis with labels and move to the bottom of the chart area
+	/*vis.append("g")
+		.attr("class", "xaxis")   
+		.attr("transform", "translate(0," + (height - padding) + ")")
+		.call(xAxis);*/
 	
-	update_yaxis();
-	
-	vis.selectAll(".xaxis text")  // select all the text elements for the xaxis
-	  .attr("transform", function(d) {
-		  return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
-	});
 
-	
 	draw_movies = function() {
       var movies;
 	
-	  movies = vis.selectAll(".movie").data(data, function(d) {
+	  movies = movie_body.selectAll(".movie").data(data.movies, function(d) {
         return d.id;
       });
-      
-	  
+      	  
 	   movies.enter().append("g").attr("class", "movie")
-			.data(data.movies)
-		.enter().append("svg:image")
-			.attr("class", "movie")
-			.attr("xlink:href", function(d) { return d.posters.thumbnail; })
-			.attr("x", function(d) { return xScale(new Date(d.release_dates.theater)); })
-			.attr("y", function(d) { return yScale(d.ratings.critics_score); })
-			.attr("width", "50px")
-			.attr("height", "50px");
+			.append("svg:image")
+				.attr("class", "movie")
+				.attr("xlink:href", function(d) { return d.posters.thumbnail; })
+				.attr("x", function(d) { return xScale(new Date(d.release_dates.theater)); })
+				.attr("y", function(d) { return yScale(d.ratings.critics_score); })
+				.attr("width", "50px")
+				.attr("height", "50px");
 		
 		movies.transition().duration(1000).attr("transform", function(d) {
-			return "translate(" + (x_scale(d["Profit"])) + "," + (y_scale(d["Rotten Tomatoes"])) + ")";
+			return "translate(" + (xScale(d.release_dates.theater)) + "," + (yScale(d.ratings.critics_score)) + ")";
 		});
 		
-	 movies.exit().transition().duration(1000).attr("transform", function(d) {
-        return "translate(" + 0 + "," + 0 + ")";
-      }).remove();
+		movies.exit().transition().duration(1000).attr("transform", function(d) {
+			return "translate(" + 0 + "," + 0 + ")";
+		}).remove();
       return movies.exit().selectAll("circle").transition().duration(1000).attr("r", 0);
 	}
+	render_vis = function() {      
+      base_vis = d3.select(".hero-unit").append("svg").attr("width", w + (pl + pr)).attr("height", h + (pt + pb)).attr("id", "vis-svg");
+      base_vis.append("g").attr("class", "x_axis").attr("transform", "translate(" + 0 + "," + (h + pt) + ")").call(xAxis);
+      base_vis.append("text").attr("x", w / 2).attr("y", h + (pt + pb) - 10).attr("text-anchor", "middle").attr("class", "axisTitle").attr("transform", "translate(" + pl + ",0)").text("Profit ($ mil)");
+      base_vis.append("g").attr("class", "y_axis").attr("transform", "translate(" + pl + "," + pt + ")").call(yAxis);
+      vis = base_vis.append("g").attr("transform", "translate(" + 0 + "," + (h + (pt + pb)) + ")scale(1,-1)");
+      vis.append("text").attr("x", h / 2).attr("y", 20).attr("text-anchor", "middle").attr("class", "axisTitle").attr("transform", "rotate(270)scale(-1,1)translate(" + pb + "," + 0 + ")").text("Rating (Rotten Tomatoes %)");
+      body = base_vis.append("g").attr("transform", "translate(" + pl + "," + pb + ")").attr("id", "vis-body");
+      //zero_line = body.append("line").attr("x1", xScale(0)).attr("x2", xScale(0)).attr("y1", 0 + 5).attr("y2", h - 5).attr("stroke", "#aaa").attr("stroke-width", 1).attr("stroke-dasharray", "2");
+      //middle_line = body.append("line").attr("x1", 0 + 5).attr("x2", w + 5).attr("y1", yScale(50.0)).attr("y2", yScale(50.0)).attr("stroke", "#aaa").attr("stroke-width", 1).attr("stroke-dasharray", "2");
+      movie_body = body.append("g").attr("id", "movies");
+      draw_movies();            
+    };
 	
 	$("#rating_choice .dropdown-menu li a").click(function(){
       $("#rating_choice .dropdown-toggle:first-child").text($(this).text());
@@ -168,6 +162,6 @@ $(document).ready(function () {
       $("#boxoffice_choice .dropdown-toggle:first-child").val($(this).text());
    });
    
-   draw_movies();
+   render_vis();
 });
 

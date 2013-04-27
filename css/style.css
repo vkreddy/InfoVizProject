@@ -1,4 +1,4 @@
-.xaxis, .yaxis path {
+.x_axis, .y_axis path {
 	fill: none;
 	stroke: #000;
 }
