@@ -1,3 +1,7 @@
-.footer_navigation {
-
+.xaxis, .yaxis path {
+	fill: none;
+	stroke: #000;
 }
+
+#rating_choice { float: left}
+#boxoffice_choice { float: left}
