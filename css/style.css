@@ -1,7 +1,64 @@
+body {
+	font-family: 'Josefin Sans', sans-serif;
+}
+
+body {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 13px;
+	font-weight: normal;
+	line-height: 18px;
+	color: #404040;
+}
+
 .x_axis, .y_axis path {
 	fill: none;
 	stroke: #000;
 }
 
 #rating_choice { float: left}
-#boxoffice_choice { float: left}
+
+#tooltip {
+	position: absolute;
+	width: 220px;
+	background: #000000;
+	z-index: 1338;
+	padding: 7px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	color: white;
+	-moz-box-shadow: 1px 1px 1px #666;
+	-webkit-box-shadow: 1px 1px 1px #666;
+	box-shadow: 1px 1px 1px #666;
+	pointer-events: none;
+}
+
+#tooltip .title {
+    font-size: 16px;
+    line-height: 18px;
+    margin-bottom: 9px;
+    text-align:center;
+}
+ 
+#tooltip .detail {
+    font-size: 12px;
+    line-height: 14px;
+    color: white;
+}
+ 
+#tooltip table {
+    width: 100%;
+    font-size: 12px;
+    line-height: 14px;
+    color: white;
+    margin:0;
+}
+
+.hidden {
+	display: none !important;
+	visibility: hidden;
+}
+
+#crosshairs line {
+  fill: none;
+  stroke: #ddd;
+}
