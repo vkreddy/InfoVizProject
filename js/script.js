@@ -104,8 +104,8 @@ $(document).ready(function () {
 	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate;
 	//alert(data.total);
 	
-	w = 950;
-    h = 500;
+	w = 908;
+    h = 480;
 	pt = 20, pr = 20, pb = 50, pl = 50;
 	picSize = 50, pic_p = picSize / 2;
 	
