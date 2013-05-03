@@ -101,30 +101,53 @@ function getCombineData() {
 
 $(document).ready(function () {
 	var data = getMoviesInTheaters();
-	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis;
+	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate;
 	//alert(data.total);
 	
 	w = 950;
     h = 500;
 	pt = 20, pr = 20, pb = 50, pl = 50;
 	picSize = 50, pic_p = picSize / 2;
+	
+	fStartDate = new Date(2013, 3, 1);
+	fEndDate = new Date(2013, 4, 30);
 
+	// for cross filter functionality
+	var movie = crossfilter(data.movies),
+		all = movie.groupAll(),
+		date = movie.dimension(function(d) { return new Date(d.release_dates.theater); }),
+		dates = date.group();
+		
 	//alert(data.movies[0].release_dates.theater);
     var x_domain = d3.extent(data.movies, function(d) { return new Date(d.release_dates.theater); });
-                       
+	
+	var charts = [
+		barChart()
+			.dimension(date)
+			.group(dates)
+			.round(d3.time.day.round)
+		  .x(d3.time.scale()
+			.domain(x_domain)
+			.rangeRound([0, 10 * 90]))
+			.filter([fStartDate, fEndDate])
+	];
+                     
     // display date format
-    var date_format = d3.time.format("%d %b");
+    var date_format = d3.time.format("%b %d");
 
 	xScale = d3.time.scale()
-		.domain(x_domain)    
+		.domain([new Date(date.bottom(1)[0].release_dates.theater), new Date(date.top(1)[0].release_dates.theater)])    
 		.range([0, w]);   
 
 	// define the x axis
 	var xAxis = d3.svg.axis()
 		.orient("bottom")
 		.scale(xScale)
-		.tickFormat(date_format);
+		.ticks(10)
+		.tickFormat(date_format);	
 		
+	
+	
 	function getYVal(movie) {
 		switch (option) {
 				case "Critics Rating":
@@ -141,7 +164,7 @@ $(document).ready(function () {
 					break;
 		}
 	}
-	update_scale = function() {			
+	update_yaxis = function() {			
 		y_domain = d3.extent(data.movies, function(d) { 
 			return getYVal(d)
 		});
@@ -244,8 +267,10 @@ $(document).ready(function () {
       movies = body.selectAll(".movie").selectAll("image").attr("opacity", 0.85);
       return body.select("#crosshairs").remove();
     };
+	
 	render_vis = function() {      
       base_vis = d3.select(".vis").append("svg").attr("width", w + (pl + pr)).attr("height", h + (pt + pb)).attr("id", "vis-svg");
+	  //base_vis.append("g").attr("transform", "translate(" + pl + "," + pt + ")").call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([1, 8]).on("zoom", zoom));
       base_vis.append("g").attr("class", "x_axis").attr("transform", "translate(" + pl + "," + (h + pt) + ")").call(xAxis);
       base_vis.append("text").attr("x", w / 2).attr("y", h + (pt + pb) - 10).attr("text-anchor", "middle").attr("class", "axisTitle").attr("transform", "translate(" + pl + ",0)").text("Release Date");
       base_vis.append("g").attr("class", "y_axis").attr("transform", "translate(" + pl + "," + pt + ")").call(yAxis);
@@ -259,15 +284,253 @@ $(document).ready(function () {
 	$("#rating_choice .dropdown-menu li a").click(function(){
 		$("#rating_choice .dropdown-toggle:first-child").text($(this).text());
 		$("#rating_choice .dropdown-toggle:first-child").val($(this).text());	  	  		
-		option = $(this).text();				
-		update_scale();
+		option = $(this).text();	
+		update_yaxis();
 		redraw_movies();
 	});
-		
-	option = "Critics Rating";
+
+	var chart = d3.selectAll(".chart")
+      .data(charts)
+      .each(function(chart) { chart.on("brush", renderAll).on("brushend", renderEnd); });
+	  
+	renderAll();
+	
+	// Renders the specified chart or list.
+	function render(method) {
+		d3.select(this).call(method);
+	}
+	
+	// Whenever the brush moves, re-rendering everything.
+	function renderAll() {
+		chart.each(render);
+	}
+	
+	function renderEnd() {	
+		update_xaxis();		
+		redraw_movies();
+	}
+	
+	function update_xaxis() {
+		xScale = d3.time.scale()
+			.domain([new Date(date.bottom(1)[0].release_dates.theater), new Date(date.top(1)[0].release_dates.theater)])    
+			.range([0, w]); 
+			
+		xAxis = d3.svg.axis()
+			.orient("bottom")
+			.scale(xScale)
+			.ticks(10)
+			.tickFormat(date_format);
+			
+		base_vis.transition().duration(1000).select(".x_axis").call(xAxis);
+	}
+	
+	window.filter = function(filters) {
+		filters.forEach(function(d, i) { charts[i].filter(d); });
+		renderAll();
+	};
+
+	window.reset = function(i) {
+		charts[i].filter(null);
+		renderAll();
+	};
+	
+	function barChart() {
+    if (!barChart.id) barChart.id = 0;
+
+    var margin = {top: 10, right: 10, bottom: 20, left: 10},
+        x,
+        y = d3.scale.linear().range([100, 0]),
+        id = barChart.id++,
+        axis = d3.svg.axis().orient("bottom"),
+        brush = d3.svg.brush(),
+        brushDirty,
+        dimension,
+        group,
+        round;
+
+    function chart(div) {
+      var width = x.range()[1],
+          height = y.range()[0];
+
+      y.domain([0, group.top(1)[0].value]);
+
+      div.each(function() {
+        var div = d3.select(this),
+            g = div.select("g");
+
+        // Create the skeletal chart.
+        if (g.empty()) {
+          div.select(".title").append("a")
+              .attr("href", "javascript:reset(" + id + ")")
+              .attr("class", "reset")
+              .text("reset")
+              .style("display", "none");
+
+          g = div.append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.append("clipPath")
+              .attr("id", "clip-" + id)
+            .append("rect")
+              .attr("width", width)
+              .attr("height", height);
+
+          g.selectAll(".bar")
+              .data(["background", "foreground"])
+            .enter().append("path")
+              .attr("class", function(d) { return d + " bar"; })
+              .datum(group.all());
+
+          g.selectAll(".foreground.bar")
+              .attr("clip-path", "url(#clip-" + id + ")");
+
+          g.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(axis);
+
+          // Initialize the brush component with pretty resize handles.
+          var gBrush = g.append("g").attr("class", "brush").call(brush);
+          gBrush.selectAll("rect").attr("height", height);
+          gBrush.selectAll(".resize").append("path").attr("d", resizePath);
+        }
+
+        // Only redraw the brush if set externally.
+        if (brushDirty) {
+          brushDirty = false;
+          g.selectAll(".brush").call(brush);
+          div.select(".title a").style("display", brush.empty() ? "none" : null);
+          if (brush.empty()) {
+            g.selectAll("#clip-" + id + " rect")
+                .attr("x", 0)
+                .attr("width", width);
+          } else {
+            var extent = brush.extent();
+            g.selectAll("#clip-" + id + " rect")
+                .attr("x", x(extent[0]))
+                .attr("width", x(extent[1]) - x(extent[0]));
+          }
+        }
+
+        g.selectAll(".bar").attr("d", barPath);
+      });
+
+      function barPath(groups) {
+        var path = [],
+            i = -1,
+            n = groups.length,
+            d;
+        while (++i < n) {
+          d = groups[i];
+          path.push("M", x(d.key), ",", height, "V", y(d.value), "h9V", height);
+        }
+        return path.join("");
+      }
+
+      function resizePath(d) {
+        var e = +(d == "e"),
+            x = e ? 1 : -1,
+            y = height / 3;
+        return "M" + (.5 * x) + "," + y
+            + "A6,6 0 0 " + e + " " + (6.5 * x) + "," + (y + 6)
+            + "V" + (2 * y - 6)
+            + "A6,6 0 0 " + e + " " + (.5 * x) + "," + (2 * y)
+            + "Z"
+            + "M" + (2.5 * x) + "," + (y + 8)
+            + "V" + (2 * y - 8)
+            + "M" + (4.5 * x) + "," + (y + 8)
+            + "V" + (2 * y - 8);
+      }
+    }
+
+    brush.on("brushstart.chart", function() {
+      var div = d3.select(this.parentNode.parentNode.parentNode);
+      div.select(".title a").style("display", null);
+    });
+
+    brush.on("brush.chart", function() {
+      var g = d3.select(this.parentNode),
+          extent = brush.extent();
+      if (round) g.select(".brush")
+          .call(brush.extent(extent = extent.map(round)))
+        .selectAll(".resize")
+          .style("display", null);
+      g.select("#clip-" + id + " rect")
+          .attr("x", x(extent[0]))
+          .attr("width", x(extent[1]) - x(extent[0]));
+      dimension.filterRange(extent);
+    });
+
+    brush.on("brushend.chart", function() {
+      if (brush.empty()) {
+        var div = d3.select(this.parentNode.parentNode.parentNode);
+        div.select(".title a").style("display", "none");
+        div.select("#clip-" + id + " rect").attr("x", null).attr("width", "100%");
+        dimension.filterAll();
+      }
+    });
+
+    chart.margin = function(_) {
+      if (!arguments.length) return margin;
+      margin = _;
+      return chart;
+    };
+
+    chart.x = function(_) {
+      if (!arguments.length) return x;
+      x = _;
+      axis.scale(x);
+      brush.x(x);
+      return chart;
+    };
+
+    chart.y = function(_) {
+      if (!arguments.length) return y;
+      y = _;
+      return chart;
+    };
+
+    chart.dimension = function(_) {
+      if (!arguments.length) return dimension;
+      dimension = _;
+      return chart;
+    };
+
+    chart.filter = function(_) {
+      if (_) {
+        brush.extent(_);
+        dimension.filterRange(_);
+      } else {
+        brush.clear();
+        dimension.filterAll();
+      }
+      brushDirty = true;
+      return chart;
+    };
+
+    chart.group = function(_) {
+      if (!arguments.length) return group;
+      group = _;
+      return chart;
+    };
+
+    chart.round = function(_) {
+      if (!arguments.length) return round;
+      round = _;
+      return chart;
+    };
+
+    return d3.rebind(chart, brush, "on");
+  }
+  
+  option = "Critics Rating";
 	$("#rating_choice .dropdown-toggle:first-child").text(option);
-	$("#rating_choice .dropdown-toggle:first-child").val(option);
-	update_scale();
+	$("#rating_choice .dropdown-toggle:first-child").val(option);	
+	update_yaxis();
 	render_vis();
+
 });
 
