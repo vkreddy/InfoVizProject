@@ -192,9 +192,6 @@
         actors = actors + movie.abridged_cast[i].name + "<br>";
       }
       actors = actors.substring(0, actors.length - 4);
-      console.log(genres);
-      console.log(directors);
-      console.log(actors);
       $("#movietitle").html(movie.title);
       $("#info").html('<p>'+movie.mpaa_rating+', '+movie.runtime+' min</p><p>'+genres+'</p><p><b>Director:</b><br>'+directors+'</p><p><b>Cast:</b><br>'+actors+'</p>');
       // $("#ratings").html('<p>Critic Rating: '+movie.ratings.critics_score+'</p><p>Audience Score: '+movie.ratings.audience_score+'</p>')
@@ -352,10 +349,10 @@
             },
             async: false
           }); // end of scraper ajax
-          if (opening = ""){
+          if (opening == ""){
             opening = lastweekend;
           }
-          console.log(opening);
+          console.log("opening:", opening);
           $("#boxoffice").html("<h4>Box Office</h4><p>Last Weekend: "+lastweekend+"<br>Opening Weekend: "+opening+"<br>Gross: "+gross+"</p>");
         },
         async:false
