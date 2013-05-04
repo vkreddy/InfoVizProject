@@ -8,6 +8,9 @@ body {
 	font-weight: normal;
 	line-height: 18px;
 	color: #404040;
+	background-image:url('../img/movie_theatre.jpg');
+	background-position:center;
+	background-position-y:-131px;
 }
 
 .x_axis, .y_axis path {
@@ -63,6 +66,7 @@ body {
   stroke: #ddd;
 }
 
+<<<<<<< HEAD
 #charts {
   padding: 10px 0;
 }
@@ -103,4 +107,8 @@ body {
 
 #date-chart {
   width: 920px;
+=======
+.container{
+	width:978px;
+>>>>>>> more info, box office scraper, styling changes
 }
