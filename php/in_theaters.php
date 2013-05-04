@@ -17,5 +17,23 @@ curl_setopt_array( $ch, $options );
 // Getting results
 $result =  curl_exec($ch); 
 
-echo $result
+$data = json_decode($result, true);
+
+$total_pages = $data['total'] % 16;
+
+$all_movies["total"] = $data['total'];
+$all_movies["movies"] = $data['movies'];
+
+while ($data["movies"]) {
+    $all_movies['movies'] = array_merge( (array)$all_movies['movies'], (array)$data['movies'] );
+
+    $paging = $data['links'];
+    $next = $paging['next'] . "&apikey=bq2gvg6a4zv8ac366yq676uu";
+	$ch = curl_init( $next );
+	curl_setopt_array( $ch, $options );
+    $result =  curl_exec($ch); 
+	$data = json_decode($result, true);	
+}
+
+echo json_encode($all_movies);
 ?>
