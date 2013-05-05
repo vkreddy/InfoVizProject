@@ -55,52 +55,242 @@ function getDateAndRatings(data) {
 	return dateRating;
 }
 
-function getBoxOfficeData(movie_id) {
-	var opening, gross, lastweekend;
-	
-	var imdbid = "tt" + movie_id;        
-	
-	$.ajax({
-		url: "/scraper.php?imdbid=" + imdbid + " #tn15content",
-		success: function(data){	
-			var subset = data.match(/Budget(.|\n)*?Related/);
-			var subsetnon = subset[0].replace(/(\r\n|\n|\r)/gm,"");
-			//pull opening weekend data
-			var openingM = subsetnon.match(/Opening Weekend.*?USA/);
-			var opening1 = openingM[0].replace("Opening Weekend</h5>$","");
-			var opening2 = opening1.replace(" (USA","");
-			opening = opening2.replace(/\,/g,"");
-			//pull gross data
-			var grossM = subsetnon.match(/Gross.*?USA/);
-			var gross1 = grossM[0].replace("Gross</h5>$","");
-			var gross2 = gross1.replace(" (USA","");
-			gross = gross2.replace(/\,/g,"");
-			//pull last weekend
-			var lastweekendM = subsetnon.match(/Weekend Gross.*?USA/);
-			var lastweekend1 = lastweekendM[0].replace("Weekend Gross</h5>$","");
-			var lastweekend2 = lastweekend1.replace(" (USA","");
-			lastweekend = lastweekend2.replace(/\,/g,"");
-			//console.log the important data. these are strings at the moment.
-			//console.log(opening);
-			//console.log(gross);
-			//console.log(lastweekend);		  
-		},
-		async: false
-	});    
-	return { "opening": opening, "gross": gross, "lastweekend": lastweekend}
+function getBoxOfficeData(imdbid, movieName){
+      var lastweekend = "";
+      var gross = "";
+      var opening = "";
+      var bomojoinfo = 0;
+      $.ajax({
+        url: "php/scraper2.php",
+        success: function(data) {
+          //matches just the table
+          var subset = data.match(/Week #[^]+TOTAL/);
+          //finds the movie
+          movieName = movieName.replace("&", "and"); // Rotten Tomatoes uses "&", while boxofficmojo uses "and"
+          // Get the info for your movie
+          var movieSearch = new RegExp('htm"><b>'+movieName+'[^]+?center');
+          //Extract weekend and gross from the data
+          var sub2 = subset[0].match(movieSearch);
+          if (!sub2){
+            var bomojoinfo = 0;
+          }
+          else{
+            var bomojoinfo = 1;
+            var sub3 = sub2[0].match(/2">[^]+?<\/font>/g);
+            lastweekend = sub3[1];
+            gross = sub3[6];
+            lastweekend = lastweekend.replace('2"><b>', "");
+            lastweekend = lastweekend.replace('</b></font>', "");
+            gross = gross.replace('2">', "");
+            gross = gross.replace('</font>', "");			
+          }
+          // Pull additional data from IMDB
+          $.ajax({
+            url: "php/scraper.php?imdbid=tt" + imdbid + " #tn15content",
+            success: function(data) {
+              //get relevant subset from whole string
+              var subset = data.match(/Opening(.|\n)*?Related/);
+              // If the scraper doesn't have the appropriate information
+              if (!subset){
+                var imdbinfo = 0;
+                console.log("no subset");
+              }
+              else{
+                var subsetnon = subset[0].replace(/(\r\n|\n|\r)/gm,"");
+                //pull opening weekend data
+                var openingM = subsetnon.match(/Opening.*?USA/);
+                // If the IMDB site does not have the box office information, pull the information from boxofficemojo
+                if(!openingM){
+                  var imdbinfo = 0;
+                  console.log("no opening");
+                }
+                else{
+                  var imdbinfo = 1;
+                  var opening1 = openingM[0].replace("Opening Weekend</h5>",""); // code is modified to leave dollar sign
+                  opening = opening1.replace(" (USA",""); // This used to be opening2. modified to leave commas
+                  // var opening = opening2.replace(/\,/g,""); 
+                  //pull gross data
+				  
+                  var grossM = subsetnon.match(/Gross.*?USA/);
+                  var gross1 = grossM[0].replace("Gross</h5>","");
+                  var imdbgross = gross1.replace(" (USA","");
+                  //pull last weekend
+                  var lastweekendM = subsetnon.match(/Weekend Gross.*?USA/);
+                  var lastweekend1 = lastweekendM[0].replace("Weekend Gross</h5>","");
+                  var imdblastweekend = lastweekend1.replace(" (USA","");
+                  //console.log the important data. these are strings at the moment.
+                  if (bomojoinfo == 0){
+                    lastweekend = imdblastweekend;
+                    gross = imdbgross;
+                  }
+                }
+              }
+            },
+            async: false
+          }); // end of scraper ajax
+          if (opening == ""){
+            opening = lastweekend;
+          }
+          console.log("opening:", opening);          
+        },
+        async:false
+      }); // end of scraper2 ajax
+	  
+	  opening = parseFloat(opening.replace("$","").replace(",",""));
+	  lastweekend = parseFloat(lastweekend.replace("$","").replace(",",""));
+	  gross = parseFloat(gross.replace("$","").replace(",",""));
+	  return { "opening": opening, "gross": gross, "lastweekend": lastweekend}
 }
 
 function getCombineData() {
 	var data = getMoviesInTheaters();
 	for(var i=0;i<data.movies.length;i++){		
-		var val = getBoxOfficeData(data.movies[i].alternate_ids.imdb);		
+		var val = getBoxOfficeData(data.movies[i].alternate_ids.imdb, data.movies[i].title);		
 		data.movies[i].boxoffice = val;
 	}
+	
 	return data;
 }
 
+function getDetails(movie){
+	var selfurl = movie.links.self + "?apikey=bq2gvg6a4zv8ac366yq676uu&limit=20&callback=?";
+	$.getJSON(selfurl, function(json){
+	// get directors and genres
+		movie.abridged_directors = json.abridged_directors;
+		movie.genres = json.genres;
+		outputData(movie);
+	});
+}
+
+function outputData(movie){
+	console.log(movie); // This is the movie data with genres and directors included
+	$("#poster").html('<img src=' + movie.posters.detailed + '>')
+	//Prepare the data for the info
+	var genres = "";
+	var directors = "";
+	var actors = "";
+	// put array datas into single strings
+	for (var i=0; i < movie.genres.length; i++){
+	genres = genres + movie.genres[i] + ", ";
+	}
+	genres = genres.substring(0, genres.length - 2); // remove last ", ""
+	for (var i=0; i<movie.abridged_directors.length; i++){
+	directors = directors + movie.abridged_directors[i].name + "<br>";
+	}
+	directors = directors.substring(0, directors.length - 4);
+	for (var i=0; i<movie.abridged_cast.length; i++){
+	actors = actors + movie.abridged_cast[i].name + "<br>";
+	}
+	actors = actors.substring(0, actors.length - 4);
+	$("#movietitle").html(movie.title);
+	$("#info").html('<p>'+movie.mpaa_rating+', '+movie.runtime+' min</p><p>'+genres+'</p><p><b>Director:</b><br>'+directors+'</p><p><b>Cast:</b><br>'+actors+'</p>');
+	// $("#ratings").html('<p>Critic Rating: '+movie.ratings.critics_score+'</p><p>Audience Score: '+movie.ratings.audience_score+'</p>')
+	$("#synopsis").html(movie.synopsis);
+	// get movie db id to get the movie trailer
+	getmoviedbid(movie.alternate_ids.imdb);
+	ratinggraphs(movie.ratings.critics_score, movie.ratings.audience_score);
+	getBoxOfficeData(movie.alternate_ids.imdb, movie.title);
+}
+
+function ratinggraphs(critic, audience){
+	var valueLabelWidth = 40; // space reserved for value labels (right)
+	var barHeight = 20; // height of one bar
+	var barLabelWidth = 73; // space reserved for bar labels
+	var barLabelPadding = 5; // padding between bar and bar labels (left)
+	var gridLabelHeight = 18; // space reserved for gridline labels
+	var gridChartOffset = 3; // space between start of grid and first bar
+	var maxBarWidth = 200; // width of the bar with the max value
+
+	var data = [{type: "Critic", rating: critic},{type:"Audience",rating:audience}];
+
+	// accessor functions 
+	var barLabel = function(d) { return d['type']; };
+	var barValue = function(d) { return d['rating']; };
+
+	// scales
+	var yScale = d3.scale.ordinal().domain(d3.range(0, data.length)).rangeBands([0, data.length * barHeight]);
+	var y = function(d, i) { return yScale(i); };
+	var yText = function(d, i) { return y(d, i) + yScale.rangeBand() / 2; };
+	var x = d3.scale.linear().domain([0, 100]).range([0, maxBarWidth]);
+	// svg container element
+	var chart = d3.select('#ratingsgraph').append("svg")
+	.attr('width', maxBarWidth + barLabelWidth + valueLabelWidth)
+	.attr('height', gridLabelHeight + gridChartOffset + data.length * barHeight);
+	// grid line labels
+	var gridContainer = chart.append('g')
+	.attr('transform', 'translate(' + barLabelWidth + ',' + gridLabelHeight + ')'); 
+	gridContainer.selectAll("text").data(x.ticks(2)).enter().append("text")
+	.attr("x", x)
+	.attr("dy", -3)
+	.attr("text-anchor", "middle")
+	.text(String);
+	// vertical grid lines
+	gridContainer.selectAll("line").data(x.ticks(10)).enter().append("line")
+	.attr("x1", x)
+	.attr("x2", x)
+	.attr("y1", 0)
+	.attr("y2", yScale.rangeExtent()[1] + gridChartOffset)
+	.style("stroke", "#ccc");
+	// bar labels
+	var labelsContainer = chart.append('g')
+	.attr('transform', 'translate(' + (barLabelWidth - barLabelPadding) + ',' + (gridLabelHeight + gridChartOffset) + ')'); 
+	labelsContainer.selectAll('text').data(data).enter().append('text')
+	.attr('y', yText)
+	.attr('stroke', 'none')
+	.attr('fill', 'black')
+	.attr("dy", ".35em") // vertical-align: middle
+	.attr('text-anchor', 'end')
+	.text(barLabel);
+	// bars
+	var barsContainer = chart.append('g')
+	.attr('transform', 'translate(' + barLabelWidth + ',' + (gridLabelHeight + gridChartOffset) + ')'); 
+	barsContainer.selectAll("rect").data(data).enter().append("rect")
+	.attr('y', y)
+	.attr('height', yScale.rangeBand())
+	.attr('width', function(d) { return x(barValue(d)); })
+	.attr('stroke', 'white')
+	.attr('fill', 'steelblue');
+	// bar value labels
+	barsContainer.selectAll("text").data(data).enter().append("text")
+	.attr("x", function(d) { return x(barValue(d)); })
+	.attr("y", yText)
+	.attr("dx", 3) // padding-left
+	.attr("dy", ".35em") // vertical-align: middle
+	.attr("text-anchor", "start") // text-align: right
+	.attr("fill", "black")
+	.attr("stroke", "none")
+	.text(function(d) { return d3.round(barValue(d), 2); });
+	// start line
+	barsContainer.append("line")
+	.attr("y1", -gridChartOffset)
+	.attr("y2", yScale.rangeExtent()[1] + gridChartOffset)
+	.style("stroke", "#000");
+}
+	
+// Gets the MovieDB ID from the IMDB ID
+function getmoviedbid(imdbid){
+	var url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/json/7fb82754c80e3ab639fd76e14de06a48/tt" + imdbid;
+	$.ajax(url, {
+		crossDomain:true, 
+		dataType: "jsonp", 
+		success:function(data){
+			getmoviedbdata(data[0].id);
+		}
+	});
+}
+
+// Gets data from the movie db
+function getmoviedbdata(moviedbid){
+	var trailerurl = "http://api.themoviedb.org/3/movie/" + moviedbid + "/trailers?api_key=7fb82754c80e3ab639fd76e14de06a48&callback=?"
+	$.getJSON(trailerurl, function(json){
+	// Puts the trailer into the HTML
+		$("#trailer").html('<iframe width="475" height="267" src="http://www.youtube.com/embed/' + json.youtube[0].source + '" frameborder="0" allowfullscreen></iframe>');
+	});
+	$("#content").show();
+}
+
 $(document).ready(function () {
-	var data = getMoviesInTheaters();
+	var data = getCombineData();
 	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate;
 	//alert(data.total);
 	
@@ -112,6 +302,8 @@ $(document).ready(function () {
 	fStartDate = new Date(2013, 3, 1);
 	fEndDate = new Date(2013, 4, 30);
 
+	var formatNumber = d3.format(",d");
+	
 	// for cross filter functionality
 	var movie = crossfilter(data.movies),
 		all = movie.groupAll(),
@@ -131,7 +323,7 @@ $(document).ready(function () {
 			.rangeRound([0, 10 * 90]))
 			.filter([fStartDate, fEndDate])
 	];
-                     
+       
     // display date format
     var date_format = d3.time.format("%b %d");
 
@@ -150,18 +342,18 @@ $(document).ready(function () {
 	
 	function getYVal(movie) {
 		switch (option) {
-				case "Critics Rating":
-					return movie.ratings.critics_score; 
-					break;
-				case "Audience Rating":
-					return movie.ratings.audience_score;
-					break;
-				case "Opening Weekend":
-					return movie.boxoffice.opening;
-					break;
-				case "Gross":
-					return movie.boxoffice.gross;
-					break;
+			case "Critics Rating":
+				return movie.ratings.critics_score; 
+				break;
+			case "Audience Rating":
+				return movie.ratings.audience_score;
+				break;
+			case "Opening Weekend":					
+				return (movie.boxoffice.opening / 1000);
+				break;
+			case "Gross":
+				return (movie.boxoffice.gross / 1000);
+				break;
 		}
 	}
 	update_yaxis = function() {			
@@ -190,10 +382,10 @@ $(document).ready(function () {
 					yText = "Audience Score (Rotten Tomatoes)"; 
 					break;
 				case "Opening Weekend":
-					yText = "Opening Weekend ($)"; 
+					yText = "Opening Weekend ($ in 000's)"; 
 					break;
 				case "Gross":
-					yText = "Gross($)"; 
+					yText = "Gross($ in 000's)"; 
 					break;
 		}
 			
@@ -206,7 +398,34 @@ $(document).ready(function () {
 	  movies.enter().append("g").attr("class", "movie").on("mouseover", function(d, i) {
 			return show_details(d, i, this);
 		}).on("mouseout", hide_details)
-			.append("svg:image")
+		.on("click", function(d) {
+			$( "#dialog" ).show();
+			
+			$( "#closebutton" ).click(function() {
+				$("#content").hide();
+				$("#dialog").hide();
+				$("#trailer").html("");
+				$("#movietitle").html("");
+				$("#poster").html("");
+				$("#info").html("");
+				$("#ratingsgraph").html("");
+				$("#boxoffice").html("");
+				$("#synopsis").html("");
+			});
+
+			$( "#dialog" ).click(function() {
+				$("#content").hide();
+				$("#dialog").hide();
+				$("#trailer").html("");
+				$("#movietitle").html("");
+				$("#poster").html("");
+				$("#info").html("");
+				$("#ratingsgraph").html("");
+				$("#boxoffice").html("");
+				$("#synopsis").html("");
+			});
+			return getDetails(d);
+		}).append("svg:image")
 				.attr("transform", "rotate(180)")
 				.attr("xlink:href", function(d) { return d.posters.thumbnail; })
 				.attr("width", picSize + "px")
@@ -246,7 +465,7 @@ $(document).ready(function () {
       msg = '<p class="title">' + movie_data.title + '</p>';
       msg += '<table>';
       msg += '<tr><td>Release Date:</td><td>' + date_format(new Date(movie_data.release_dates.theater)) + '</td></tr>';
-      msg += '<tr><td>Score:</td><td>' + getYVal(movie_data) + ' </td></tr>';
+      msg += '<tr><td>'+ option +':</td><td>' + getYVal(movie_data) + ' </td></tr>';
       msg += '</table>';
       d3.select('#tooltip').classed('hidden', false);
       d3.select('#tooltip .content').html(msg);
@@ -284,7 +503,7 @@ $(document).ready(function () {
 	$("#rating_choice .dropdown-menu li a").click(function(){
 		$("#rating_choice .dropdown-toggle:first-child").text($(this).text());
 		$("#rating_choice .dropdown-toggle:first-child").val($(this).text());	  	  		
-		option = $(this).text();	
+		option = $(this).text();			
 		update_yaxis();
 		redraw_movies();
 	});
@@ -300,19 +519,24 @@ $(document).ready(function () {
 		d3.select(this).call(method);
 	}
 	
+	function update_date() {
+		d3.select("#active").text(formatNumber(all.value()));
+	}
 	// Whenever the brush moves, re-rendering everything.
 	function renderAll() {
 		chart.each(render);
+		
 	}
 	
 	function renderEnd() {	
 		update_xaxis();		
 		redraw_movies();
+		d3.select("#active").text(formatNumber(all.value()));
 	}
 	
 	function update_xaxis() {
 		xScale = d3.time.scale()
-			.domain([new Date(date.bottom(1)[0].release_dates.theater), new Date(date.top(1)[0].release_dates.theater)])    
+			.domain([new Date(new Date(date.bottom(1)[0].release_dates.theater) - 1), new Date(date.top(1)[0].release_dates.theater)])    
 			.range([0, w]); 
 			
 		xAxis = d3.svg.axis()
@@ -526,11 +750,13 @@ $(document).ready(function () {
     return d3.rebind(chart, brush, "on");
   }
   
-  option = "Critics Rating";
+	$("#dialog").hide();
+    $("#content").hide();
+	option = "Critics Rating";
 	$("#rating_choice .dropdown-toggle:first-child").text(option);
 	$("#rating_choice .dropdown-toggle:first-child").val(option);	
 	update_yaxis();
 	render_vis();
-
+	
 });
 
