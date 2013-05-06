@@ -131,7 +131,8 @@ function getBoxOfficeData(imdbid, movieName){
           if (opening == ""){
             opening = lastweekend;
           }
-          console.log("opening:", opening);          
+          console.log("opening:", opening);
+          $("#boxoffice").html("<h4>Box Office</h4><p>Last Weekend: "+lastweekend+"<br>Opening Weekend: "+opening+"<br>Gross: "+gross+"</p>");
         },
         async:false
       }); // end of scraper2 ajax
