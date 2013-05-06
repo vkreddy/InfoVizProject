@@ -68,6 +68,7 @@ body {
 
 #charts {
   padding: 10px 0;
+  padding-left: 3%;
 }
 
 .chart {
@@ -91,7 +92,10 @@ body {
 }
 
 .axis text {
-  font: 10px sans-serif;
+	font: 10px sans-serif;
+	stroke: #FFF;
+	fill: none;
+	shape-rendering: crispEdges;
 }
 
 .brush rect.extent {
@@ -106,6 +110,7 @@ body {
 
 #date-chart {
   width: 920px;
+  padding-top: 20px;
 }
 
 .container{	
@@ -210,4 +215,16 @@ aside {
 #boxoffice{
 	display:block;
 }
-	  
+
+#genres {
+	float: right;
+}
+.title {
+	color: #FFFFFF;
+}
+
+.axis path, .axis line {
+	fill: none;
+	stroke: #FFF;
+	shape-rendering: crispEdges;
+}

@@ -144,8 +144,11 @@ function getBoxOfficeData(imdbid, movieName){
 
 function getCombineData() {
 	var data = getMoviesInTheaters();
+	var val = { "opening": 0, "gross": 0, "lastweekend": 0};
 	for(var i=0;i<data.movies.length;i++){		
-		var val = getBoxOfficeData(data.movies[i].alternate_ids.imdb, data.movies[i].title);		
+		if (data.movies[i].alternate_ids != null && data.movies[i].alternate_ids.imdb != null) {
+			val = getBoxOfficeData(data.movies[i].alternate_ids.imdb, data.movies[i].title);
+		}		
 		data.movies[i].boxoffice = val;
 	}
 	
@@ -290,28 +293,33 @@ function getmoviedbdata(moviedbid){
 }
 
 $(document).ready(function () {
-	var data = getCombineData();
-	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate;
+
+	//Note: Change "getMoviesInTheaters()" to "getCombineData()" if you want the opening and gross data. Make changes in index.html accordingly
+	var all_data = getMoviesInTheaters();	
+	var data = all_data.movies;
+	
+	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate, genres;
 	//alert(data.total);
 	
 	w = 908;
     h = 480;
 	pt = 20, pr = 20, pb = 50, pl = 50;
-	picSize = 50, pic_p = picSize / 2;
+	picSize = 80, pic_p = picSize / 2;
 	
-	fStartDate = new Date(2013, 3, 1);
-	fEndDate = new Date(2013, 4, 30);
+	genres = null;
+	fStartDate = new Date(2013, 3, 20);
+	fEndDate = new Date(2013, 4, 5);
 
 	var formatNumber = d3.format(",d");
 	
 	// for cross filter functionality
-	var movie = crossfilter(data.movies),
+	var movie = crossfilter(data),
 		all = movie.groupAll(),
 		date = movie.dimension(function(d) { return new Date(d.release_dates.theater); }),
 		dates = date.group();
 		
 	//alert(data.movies[0].release_dates.theater);
-    var x_domain = d3.extent(data.movies, function(d) { return new Date(d.release_dates.theater); });
+    var x_domain = d3.extent(data, function(d) { return new Date(d.release_dates.theater); });
 	
 	var charts = [
 		barChart()
@@ -327,8 +335,14 @@ $(document).ready(function () {
     // display date format
     var date_format = d3.time.format("%b %d");
 
+	var lower_date = new Date(date.bottom(1)[0].release_dates.theater);
+		lower_date.setDate(lower_date.getDate() - 2)
+		
+	var upper_date = new Date(date.top(1)[0].release_dates.theater);
+		upper_date.setDate(upper_date.getDate() + 1)
+		
 	xScale = d3.time.scale()
-		.domain([new Date(date.bottom(1)[0].release_dates.theater), new Date(date.top(1)[0].release_dates.theater)])    
+		.domain([lower_date, upper_date])    
 		.range([0, w]);   
 
 	// define the x axis
@@ -338,8 +352,19 @@ $(document).ready(function () {
 		.ticks(10)
 		.tickFormat(date_format);	
 		
-	
-	
+	filter_genres = function(genres) {
+      if (genres != "All Genres") {
+        return data = data.filter(function(d) {			
+          return $.inArray(genres,d.genres) !== -1;
+        });
+      } else {
+		return data = all_data.movies;
+	  }
+    };	
+	update_data = function() {
+      data = all_data.movies;      
+      filter_genres(genres); 
+    };
 	function getYVal(movie) {
 		switch (option) {
 			case "Critics Rating":
@@ -357,7 +382,7 @@ $(document).ready(function () {
 		}
 	}
 	update_yaxis = function() {			
-		y_domain = d3.extent(data.movies, function(d) { 
+		y_domain = d3.extent(data, function(d) { 
 			return getYVal(d)
 		});
 		
@@ -392,7 +417,7 @@ $(document).ready(function () {
 	}
 	draw_movies = function() {
       var movies;	
-	  movies = movie_body.selectAll(".movie").data(data.movies, function(d) {
+	  movies = movie_body.selectAll(".movie").data(data, function(d) {
         return d.id;
       });     		
 	  movies.enter().append("g").attr("class", "movie").on("mouseover", function(d, i) {
@@ -432,13 +457,17 @@ $(document).ready(function () {
 				.attr("height", picSize + "px");
 		
 	  movies.transition().duration(1000).attr("transform", function(d) {						
-			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p) + "," + (yScale(d.ratings.critics_score) + pic_p) + ")"
+			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p) + "," + (yScale(getYVal(d)) + pic_p) + ")"
 	  });
 		
-	  base_vis.transition().duration(1000).select(".y_axis").call(yAxis);      
+	  base_vis.transition().duration(1000).select(".y_axis").call(yAxis);   
+	  
+	  movies.exit().transition().duration(1000).attr("transform", function(d) {
+        return "translate(" + 0 + "," + 0 + ")";
+      }).remove();
 	}
 	redraw_movies= function() {
-		movies = movie_body.selectAll(".movie").data(data.movies, function(d) {
+		movies = movie_body.selectAll(".movie").data(data, function(d) {
 			return d.id;
 		});
 				
@@ -466,11 +495,12 @@ $(document).ready(function () {
       msg += '<table>';
       msg += '<tr><td>Release Date:</td><td>' + date_format(new Date(movie_data.release_dates.theater)) + '</td></tr>';
       msg += '<tr><td>'+ option +':</td><td>' + getYVal(movie_data) + ' </td></tr>';
+	  msg += '<tr><td>Genres:</td><td>' + movie_data.genres.join() + ' </td></tr>';
       msg += '</table>';
       d3.select('#tooltip').classed('hidden', false);
       d3.select('#tooltip .content').html(msg);
-	  d3.select('#tooltip').style('left', "" + ((box.x + (tooltipWidth / 2)) - box.width / 2) + "px").style('top', "" + box.y + "px");
-	  //d3.select('#tooltip').style('left', "" + box.x + "px").style('top', "" + box.y + "px");
+	  //d3.select('#tooltip').style('left', "" + ((box.x + (tooltipWidth / 2)) - box.width / 2) + "px").style('top', "" + box.y + "px");
+	  d3.select('#tooltip').style('left', "" + box.x + "px").style('top', "" + (box.y - box.height / 2)+ "px");
       selected_movie = d3.select(element);
       selected_movie.attr("opacity", 1.0);
       unselected_movies = movies.filter(function(d) {
@@ -500,13 +530,7 @@ $(document).ready(function () {
       draw_movies();            
     };
 	
-	$("#rating_choice .dropdown-menu li a").click(function(){
-		$("#rating_choice .dropdown-toggle:first-child").text($(this).text());
-		$("#rating_choice .dropdown-toggle:first-child").val($(this).text());	  	  		
-		option = $(this).text();			
-		update_yaxis();
-		redraw_movies();
-	});
+	
 
 	var chart = d3.selectAll(".chart")
       .data(charts)
@@ -531,12 +555,18 @@ $(document).ready(function () {
 	function renderEnd() {	
 		update_xaxis();		
 		redraw_movies();
-		d3.select("#active").text(formatNumber(all.value()));
 	}
 	
 	function update_xaxis() {
+	
+		var lower_date = new Date(date.bottom(1)[0].release_dates.theater);
+		lower_date.setDate(lower_date.getDate() - 2)
+		
+		var upper_date = new Date(date.top(1)[0].release_dates.theater);
+		upper_date.setDate(upper_date.getDate() + 1)
+		
 		xScale = d3.time.scale()
-			.domain([new Date(new Date(date.bottom(1)[0].release_dates.theater) - 1), new Date(date.top(1)[0].release_dates.theater)])    
+			.domain([lower_date, upper_date])    
 			.range([0, w]); 
 			
 		xAxis = d3.svg.axis()
@@ -562,7 +592,7 @@ $(document).ready(function () {
     if (!barChart.id) barChart.id = 0;
 
     var margin = {top: 10, right: 10, bottom: 20, left: 10},
-        x,
+        x = d3.scale.linear().range([0, w]),
         y = d3.scale.linear().range([100, 0]),
         id = barChart.id++,
         axis = d3.svg.axis().orient("bottom"),
@@ -591,7 +621,7 @@ $(document).ready(function () {
               .style("display", "none");
 
           g = div.append("svg")
-              .attr("width", width + margin.left + margin.right)
+              .attr("width", w + margin.left + margin.right)
               .attr("height", height + margin.top + margin.bottom)
             .append("g")
               .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -758,5 +788,30 @@ $(document).ready(function () {
 	update_yaxis();
 	render_vis();
 	
+	function add_genres() {
+		var html = "";
+		for(key in all_data.genres) {
+			html += '<li data-filter-camera-type="all"><a data-toggle="tab" href="#">' + all_data.genres[key] +'</a></li>';
+		}
+		$("#genres .dropdown-menu").append(html);
+	}
+	
+	add_genres();
+	
+	$("#genres .dropdown-menu li a").click(function(){
+		$("#genres .dropdown-toggle:first-child").text($(this).text());
+		$("#genres .dropdown-toggle:first-child").val($(this).text());	  	  		
+		genres = $(this).text();			
+		update_data();		
+		draw_movies();
+	});
+	
+	$("#rating_choice .dropdown-menu li a").click(function(){
+		$("#rating_choice .dropdown-toggle:first-child").text($(this).text());
+		$("#rating_choice .dropdown-toggle:first-child").val($(this).text());	  	  		
+		option = $(this).text();			
+		update_yaxis();
+		redraw_movies();
+	});	
 });
 

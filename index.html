@@ -28,11 +28,23 @@
 						<ul class="dropdown-menu">  
 							<li data-filter-camera-type="all"><a data-toggle="tab" href="#">Critics Rating</a></li>  
 							<li data-filter-camera-type="Alpha"><a data-toggle="tab" href="#">Audience Rating</a></li>  
-							<li data-filter-camera-type="all"><a data-toggle="tab" href="#">Opening Weekend</a></li>  
-							<li data-filter-camera-type="Alpha"><a data-toggle="tab" href="#">Gross</a></li> 							
+							<!-- uncomment below line if you want additional filtering with earnings. Also change script.js file accordingly -->
+							<!--<li data-filter-camera-type="all"><a data-toggle="tab" href="#">Opening Weekend</a></li>  
+							<li data-filter-camera-type="Alpha"><a data-toggle="tab" href="#">Gross</a></li> -->							
 						</ul>  
 					</li></ul>
-				</div>				
+				</div>	
+				<div id="genres">
+					<ul class="nav nav-pills">  
+					<li class="dropdown all-camera-dropdown">  
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">  
+							All Genres 						   
+						</a>  
+						<ul class="dropdown-menu">  
+							<li data-filter-camera-type="Alpha"><a data-toggle="tab" value="all" href="#">All Genres</a></li>  						
+						</ul>  
+					</li></ul>
+				</div>
 				<div class="vis">
 				</div>	
 				<div id="tooltip" class="hidden">
@@ -45,7 +57,6 @@
 				  </div>
 				</div>
 			</div>
-			<aside id="totals"><span id="active">-</span> of <span id="total">-</span> Movies selected.</aside>
 		</div>		
 		<div id="dialog">
     </div>
