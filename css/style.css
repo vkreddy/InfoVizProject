@@ -139,7 +139,7 @@ aside {
 }
 #content{
 	width: 854px;
-	height: 600px;
+	height: 555px;
 	background: #FFFFFF;
 	border: 2px solid black;
 	position: absolute;
@@ -151,7 +151,7 @@ aside {
 	z-index: 1;
 	font-size: 16px;
 	position: fixed;
-	top: 10px;
+	top: 61px;
 }
 #closebutton{
 	float:right;
@@ -166,12 +166,10 @@ aside {
 
 #row1{
 	margin-bottom:15px;
-	height: 50%;
 }
 
 #row2{
 	margin-bottom:15px;
-	height: 50%;
 }
 
 #info{
@@ -227,4 +225,13 @@ aside {
 	fill: none;
 	stroke: #FFF;
 	shape-rendering: crispEdges;
+}
+
+#sitetitle h2{
+	text-align:center;
+	margin:0;
+	margin-top:15px;
+	color:#EEE;
+	font-size:34px;
+	line-height:0;
 }

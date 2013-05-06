@@ -294,6 +294,9 @@ function getmoviedbdata(moviedbid){
 
 $(document).ready(function () {
 
+	// Added a little code to make the pills highlighted on load
+	$('.dropdown').toggleClass('active');
+
 	//Note: Change "getMoviesInTheaters()" to "getCombineData()" if you want the opening and gross data. Make changes in index.html accordingly
 	var all_data = getMoviesInTheaters();	
 	var data = all_data.movies;
