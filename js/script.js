@@ -299,7 +299,14 @@ $(document).ready(function () {
 
 	//Note: Change "getMoviesInTheaters()" to "getCombineData()" if you want the opening and gross data. Make changes in index.html accordingly
 	var all_data = getMoviesInTheaters();	
-	var data = all_data.movies;
+	
+	filter_movies = function() {
+        return data = all_data.movies.filter(function(d) {			
+          return d.ratings.critics_score > 10;
+        });
+    };
+	
+	filter_movies();
 	
 	var yScale, yScale_reverse, xScale, yVar, xAxis, yAxis, y_domain, movie_body, option, body, yText, vis, fStartDate, fEndDate, genres;
 	//alert(data.total);
@@ -361,11 +368,11 @@ $(document).ready(function () {
           return $.inArray(genres,d.genres) !== -1;
         });
       } else {
-		return data = all_data.movies;
+		return filter_movies();
 	  }
     };	
 	update_data = function() {
-      data = all_data.movies;      
+	  filter_movies();
       filter_genres(genres); 
     };
 	function getYVal(movie) {
