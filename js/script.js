@@ -399,7 +399,7 @@ $(document).ready(function () {
 		
 		// define the y scale  (vertical)
 		yScale = d3.scale.linear()
-			.domain(y_domain)    
+			.domain([0,120])    
 			.range([0, h]);
 		
 		yScale_reverse = d3.scale.linear()
@@ -468,7 +468,7 @@ $(document).ready(function () {
 				.attr("height", picSize + "px");
 		
 	  movies.transition().duration(1000).attr("transform", function(d) {						
-			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p) + "," + (yScale(getYVal(d)) + pic_p) + ")"
+			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p - 80) + "," + (yScale(getYVal(d)) + pic_p) + ")scale(-1,1)"
 	  });
 		
 	  base_vis.transition().duration(1000).select(".y_axis").call(yAxis);   
@@ -483,7 +483,7 @@ $(document).ready(function () {
 		});
 				
 		movies.transition().duration(1000).attr("transform", function(d) {	
-			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p) + "," + (yScale(getYVal(d)) + pic_p) + ")"			
+			return "translate(" + (xScale(new Date(d.release_dates.theater)) + pic_p - 80) + "," + (yScale(getYVal(d)) + pic_p) + ")scale(-1,1)"			
 		});
 	  
 		base_vis.transition().duration(1000).select(".y_axis").call(yAxis);
@@ -511,12 +511,12 @@ $(document).ready(function () {
       d3.select('#tooltip').classed('hidden', false);
       d3.select('#tooltip .content').html(msg);
 	  //d3.select('#tooltip').style('left', "" + ((box.x + (tooltipWidth / 2)) - box.width / 2) + "px").style('top', "" + box.y + "px");
-	  d3.select('#tooltip').style('left', "" + box.x + "px").style('top', "" + (box.y - box.height / 2)+ "px");
+	  d3.select('#tooltip').style('left', "" + box.x + "px").style('top', "" + (box.y - box.height / 2) + "px");
       selected_movie = d3.select(element);
       selected_movie.attr("opacity", 1.0);
       unselected_movies = movies.filter(function(d) {
         return d.id !== movie_data.id;
-      }).selectAll("image").attr("opacity", 0.3);
+      }).selectAll("image").attr("opacity", 0.2);
       crosshairs_g = body.insert("g", "#movies").attr("id", "crosshairs");
       crosshairs_g.append("line").attr("class", "crosshair").attr("x1", 0 + 3).attr("x2", xScale(new Date(movie_data.release_dates.theater))).attr("y1", yScale(getYVal(movie_data))).attr("y2", yScale(getYVal(movie_data))).attr("stroke-width", 1);
       return crosshairs_g.append("line").attr("class", "crosshair").attr("x1", xScale(new Date(movie_data.release_dates.theater))).attr("x2", xScale(new Date(movie_data.release_dates.theater))).attr("y1", 0 + 3).attr("y2", yScale(getYVal(movie_data))).attr("stroke-width", 1);
@@ -524,7 +524,7 @@ $(document).ready(function () {
 	hide_details = function(movie_data) {
       var movies;
       d3.select('#tooltip').classed('hidden', true);
-      movies = body.selectAll(".movie").selectAll("image").attr("opacity", 0.85);
+      movies = body.selectAll(".movie").selectAll("image").attr("opacity", 1);
       return body.select("#crosshairs").remove();
     };
 	
@@ -813,7 +813,8 @@ $(document).ready(function () {
 		$("#genres .dropdown-toggle:first-child").text($(this).text());
 		$("#genres .dropdown-toggle:first-child").val($(this).text());	  	  		
 		genres = $(this).text();			
-		update_data();		
+		update_data();	
+		update_yaxis();
 		draw_movies();
 	});
 	
